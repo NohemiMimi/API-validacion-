@@ -6,6 +6,8 @@ const {
   crearAutenticador,
   guardarPIN,
   verificarPIN,
+  generarTOTP,
+  verificarTOTP,
   eliminarAutenticador,
   revocarAutenticador
 } = require('../controllers/autenticadorController');
@@ -29,6 +31,16 @@ router.patch('/:id/pin', guardarPIN);
 // Verificar PIN
 // ==========================
 router.post('/verificar-pin', verificarPIN);
+
+// ==========================
+// Generar código TOTP
+// ==========================
+router.post('/generar-totp', generarTOTP);
+
+// ==========================
+// Verificar código TOTP
+// ==========================
+router.post('/verificar-totp', verificarTOTP);
 
 // ==========================
 // Revocar autenticador

@@ -34,14 +34,12 @@ const crearAutenticador = async (req, res) => {
 
         const { servicio, usuario } = req.body;
 
-        // Generar secret TOTP
         const secret = speakeasy.generateSecret({
             length: 20
         });
 
         const fecha = new Date().toISOString();
 
-        // Crear registro
         const nuevoAutenticador = new Autenticador({
 
             servicio,
@@ -55,7 +53,6 @@ const crearAutenticador = async (req, res) => {
 
         await nuevoAutenticador.save();
 
-        // URI personalizada con id
         const otpAuthUrl =
             `otpauth://totp/${encodeURIComponent(servicio)}:${encodeURIComponent(usuario)}` +
             `?secret=${secret.base32}` +
@@ -163,7 +160,6 @@ const verificarPIN = async (req, res) => {
             return res.status(403).json({
 
                 valido: false,
-
                 mensaje: 'El autenticador fue revocado'
 
             });
@@ -175,7 +171,6 @@ const verificarPIN = async (req, res) => {
             return res.json({
 
                 valido: false,
-
                 mensaje: 'PIN incorrecto'
 
             });
@@ -185,10 +180,98 @@ const verificarPIN = async (req, res) => {
         res.json({
 
             valido: true,
-
             mensaje: 'PIN correcto',
-
             autenticador
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            mensaje: 'Error del servidor'
+        });
+
+    }
+
+};
+
+// ==========================
+// Generar código TOTP
+// ==========================
+const generarTOTP = async (req, res) => {
+
+    try {
+
+        const { id } = req.body;
+
+        const autenticador = await Autenticador.findById(id);
+
+        if (!autenticador) {
+
+            return res.status(404).json({
+                mensaje: 'Autenticador no encontrado'
+            });
+
+        }
+
+        const codigo = speakeasy.totp({
+
+            secret: autenticador.secret,
+            encoding: 'base32'
+
+        });
+
+        res.json({
+
+            codigo
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            mensaje: 'Error del servidor'
+        });
+
+    }
+
+};
+
+// ==========================
+// Verificar código TOTP
+// ==========================
+const verificarTOTP = async (req, res) => {
+
+    try {
+
+        const { id, codigo } = req.body;
+
+        const autenticador = await Autenticador.findById(id);
+
+        if (!autenticador) {
+
+            return res.status(404).json({
+                mensaje: 'Autenticador no encontrado'
+            });
+
+        }
+
+        const valido = speakeasy.totp.verify({
+
+            secret: autenticador.secret,
+            encoding: 'base32',
+            token: codigo,
+            window: 1
+
+        });
+
+        res.json({
+
+            valido
 
         });
 
@@ -230,7 +313,6 @@ const revocarAutenticador = async (req, res) => {
         res.json({
 
             mensaje: 'Autenticador revocado correctamente',
-
             autenticador
 
         });
@@ -290,6 +372,8 @@ module.exports = {
     crearAutenticador,
     guardarPIN,
     verificarPIN,
+    generarTOTP,
+    verificarTOTP,
     eliminarAutenticador,
     revocarAutenticador
 
